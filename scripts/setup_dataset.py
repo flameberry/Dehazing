@@ -65,7 +65,7 @@ def DownloadFile(URL, filePath) -> bool:
                 PrintProgressBar(downloaded, fileSize, length=width, suffix=suffix, printEnd=printEnd)
 
     if fileSize != downloaded:
-        print(f'ERROR: Failed to download {fileName}!')
+        print(f'\nERROR: Failed to download {fileName}!')
         return False
 
     print(f'INFO: Done! The download took {round(time.perf_counter() - start, 1)} seconds!')
@@ -90,6 +90,8 @@ def UnzipFile(fileExt, src, destFolder):
 
 if __name__ == '__main__':
     datasetDir = GetProjectDir() / 'dataset'
+
+    # Check if dataset is already downloaded
     if os.path.exists(datasetDir) and os.path.getsize(datasetDir) >= pow(2, 30):
         print('WARNING: SS594_Multispectral_Dehazing already present!')
         exit()
