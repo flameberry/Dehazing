@@ -19,8 +19,9 @@ class DatasetType(Enum):
             return 'val'
 
 class DehazingDataset(Dataset):
-    def __init__(self, dehazingDatasetPath: pathlib.Path, _type: DatasetType, verbose: bool = False):
+    def __init__(self, dehazingDatasetPath: pathlib.Path, _type: DatasetType, transformFn=None, verbose: bool = False):
         self.__DehazingDatasetPath = dehazingDatasetPath
+        self.__TransformFn = transformFn
 
         self.__HazyImages = []
         self.__ClearImages = []
@@ -52,4 +53,7 @@ class DehazingDataset(Dataset):
     def __getitem__(self, index):
         hazyImage = Image.open(self.__HazyImages[index]).convert('RGB')
         clearImage = Image.open(self.__ClearImages[index]).convert('RGB')
+
+        hazyImage = self.__TransformFn(hazyImage)
+        clearImage = self.__TransformFn(clearImage)
         return hazyImage, clearImage

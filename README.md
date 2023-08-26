@@ -5,6 +5,6 @@ Image dehazing is the process of scenically improving the degraded visibility ca
 
 ***
 
-# Get Started
+# Getting Started
 1. Run the `scripts/setup_dataset.py` python script to download and set up the dataset.
 2. Run the `src/main.py` to train the model.
