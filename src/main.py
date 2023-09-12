@@ -4,13 +4,13 @@ import datetime
 from PIL import Image
 import pathlib
 from DehazingDataset import DatasetType, DehazingDataset
+from DehazingModel import AODnet
 
 # TODO: Abstract this in DehazingModel.py
 import torch
 import torchvision
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as tn_functional
 import torch.utils.data as tu_data
 from torch.utils.tensorboard import SummaryWriter
 
@@ -48,32 +48,6 @@ def save_model(epoch, path, net, optimizer, net_name):
     torch.save({'epoch': epoch, 'state_dict': net.state_dict(), 'optimizer': optimizer.state_dict()},
                f=os.path.join(path, net_name, '{}_{}.pkl'.format('AOD', epoch)))
 
-class AODnet(nn.Module):
-    def __init__(self):
-        super(AODnet, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=1, stride=1, padding=0)
-        self.conv2 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(in_channels=6, out_channels=3, kernel_size=5, stride=1, padding=2)
-        self.conv4 = nn.Conv2d(in_channels=6, out_channels=3, kernel_size=7, stride=1, padding=3)
-        self.conv5 = nn.Conv2d(in_channels=12, out_channels=3, kernel_size=3, stride=1, padding=1)
-        self.b = 1
-
-    def forward(self, x):
-        x1 = tn_functional.relu(self.conv1(x))
-        x2 = tn_functional.relu(self.conv2(x1))
-        cat1 = torch.cat((x1, x2), 1)
-        x3 = tn_functional.relu(self.conv3(cat1))
-        cat2 = torch.cat((x2, x3), 1)
-        x4 = tn_functional.relu(self.conv4(cat2))
-        cat3 = torch.cat((x1, x2, x3, x4), 1)
-        k = tn_functional.relu(self.conv5(cat3))
-
-        if k.size() != x.size():
-            raise Exception("k, haze image are different size!")
-
-        output = k * x - k + self.b
-        return tn_functional.relu(output)
-
 
 if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.has_mps else 'cpu')
@@ -97,19 +71,18 @@ if __name__ == '__main__':
     print(model)
 
     criterion = nn.MSELoss().to(device=device)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
     EPOCHS = 10
 
     summary = SummaryWriter(log_dir=str(GetProjectDir() / ("summary/model_summary_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))), comment='')
 
-    train_number = len(trainingDataset)
+    train_number = len(trainingDataLoader)
 
     print('Started Training...')
     model.train()
     for epoch in range(EPOCHS):
         for step, (haze_image, ori_image) in enumerate(trainingDataLoader):
-            count = epoch * train_number + (step + 1)
             ori_image, haze_image = ori_image.to(device), haze_image.to(device)
             dehaze_image = model(haze_image)
             loss = criterion(dehaze_image, ori_image)
@@ -117,13 +90,6 @@ if __name__ == '__main__':
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
-            summary.add_scalar('loss', loss.item(), count)
-            if step % 100 == 0:
-                summary.add_image('DeHaze_Images', make_grid(dehaze_image[:4].data, normalize=True, scale_each=True),
-                                  count)
-                summary.add_image('Haze_Images', make_grid(haze_image[:4].data, normalize=True, scale_each=True), count)
-                summary.add_image('Origin_Images', make_grid(ori_image[:4].data, normalize=True, scale_each=True),
-                                  count)
 
             print('Epoch: {}/{}  |  Step: {}/{}  |  lr: {:.6f}  | Loss: {:.6f}'
                   .format(epoch + 1, EPOCHS, step + 1, train_number,
