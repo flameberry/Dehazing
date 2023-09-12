@@ -12,21 +12,22 @@ import torchvision
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as tu_data
-from torch.utils.tensorboard import SummaryWriter
 
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as tv_functional
-from torchvision.utils import make_grid
+from torchmetrics.image import StructuralSimilarityIndexMeasure
 
 import cv2.ximgproc
-import matplotlib.pyplot as plt
 
 def GetProjectDir() -> pathlib.Path:
     return pathlib.Path(__file__).parent.parent
 
 def Preprocess(image: Image.Image) -> torch.Tensor:
     # Contrast Enhancement
-    transform = transforms.Compose([transforms.PILToTensor(), transforms.functional.equalize])
+    transform = transforms.Compose([
+        transforms.PILToTensor(),
+        transforms.ColorJitter(brightness=0.05, contrast=0.05, saturation=0.05, hue=0.05)
+    ])
     transformedImage = transform(image)
 
     # Gamma Correction
@@ -37,10 +38,15 @@ def Preprocess(image: Image.Image) -> torch.Tensor:
     max_val = gammaCorrectedImage.max()
     stretchedImage = (gammaCorrectedImage - min_val) / (max_val - min_val)
 
+    # for x in stretchedImage:
+    #     for y in x:
+    #         print(y)
+
     # Guided Filtering
     gFilter = cv2.ximgproc.createGuidedFilter(guide=stretchedImage.permute(1, 2, 0).numpy(), radius=3, eps=0.01)
     filteredImage = gFilter.filter(src=stretchedImage.permute(1, 2, 0).numpy())
     return torch.from_numpy(filteredImage).permute(2, 0, 1)
+
 
 def save_model(epoch, path, net, optimizer, net_name):
     if not os.path.exists(os.path.join(path, net_name)):
@@ -56,12 +62,6 @@ if __name__ == '__main__':
     trainingDataset = DehazingDataset(dehazingDatasetPath=datasetPath, _type=DatasetType.Train, transformFn=Preprocess, verbose=False)
     validationDataset = DehazingDataset(dehazingDatasetPath=datasetPath, _type=DatasetType.Validation, transformFn=Preprocess, verbose=False)
 
-    # tensor_image = dehazingDataset[0][0]
-    # plt.imshow(tensor_image)
-    # plt.title('Sample Preprocessed Image')
-    # plt.show()
-    print(trainingDataset[0][0].shape)
-
     # TODO: Abstract this in DehazingModel.py
     trainingDataLoader = tu_data.DataLoader(trainingDataset, batch_size=32, shuffle=True, num_workers=3)
     validationDataLoader = tu_data.DataLoader(validationDataset, batch_size=32, shuffle=True, num_workers=3)
@@ -74,8 +74,6 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
     EPOCHS = 10
-
-    summary = SummaryWriter(log_dir=str(GetProjectDir() / ("summary/model_summary_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))), comment='')
 
     train_number = len(trainingDataLoader)
 
@@ -103,6 +101,14 @@ if __name__ == '__main__':
                 break
             ori_image, haze_image = ori_image.to(device), haze_image.to(device)
             dehaze_image = model(haze_image)
+
+            ssim = StructuralSimilarityIndexMeasure().to(device)
+            ssim_val = ssim(dehaze_image, ori_image)
+            ssim_fake_val = ssim(haze_image, ori_image)
+            print(f'SSIM: {ssim_val}, SSIM_Fake: {ssim_fake_val}')
+            perc = (ssim_val - ssim_fake_val) * 100.0 / (1.0 - ssim_fake_val)
+            print(f'Percentage Improvement: {perc} %')
+
             torchvision.utils.save_image(
                 torchvision.utils.make_grid(torch.cat((haze_image, dehaze_image, ori_image), 0),
                                             nrow=ori_image.shape[0]),
@@ -113,5 +119,3 @@ if __name__ == '__main__':
         # save per epochs model
         save_model(epoch, GetProjectDir() / "saved_models", model, optimizer, str(epoch) + "_model_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
     # -------------------------------------------------------------------
-    # train finish
-    summary.close()
