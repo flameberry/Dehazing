@@ -7,4 +7,22 @@ Image dehazing is the process of scenically improving the degraded visibility ca
 
 # Getting Started
 1. Run the `scripts/setup_dataset.py` python script to download and set up the dataset.
-2. Run the `src/main.py` to train the model.
+2. Discover the jupyter notebooks
+
+# Dataset Information
+The dataset consists of Multispectral Satellite Images captured by an ISRO satellite.
+<br>
+Training Images -> 960
+<br>
+Testing Images -> 135
+<br>
+Validation Images -> 105
+
+# Methods implemented
+1. AODnet
+2. DCP
+3. Resnet (Work in Progress)
+
+# Observations
+![](readme/sample_output.jpg)
+*Output using AODnet with SSIM loss for 10 epochs with Adam optimizer*

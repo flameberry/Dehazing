@@ -1,23 +1,11 @@
 import torch
 import torch.utils.data as tu_data
-import torchvision.transforms
 from torchmetrics.image import StructuralSimilarityIndexMeasure
 
-from PIL import Image
-
-import matplotlib.pyplot as plt
+from utils import display
 
 from DehazingDataset import DatasetType, DehazingDataset
-from main import AODnet, Preprocess, GetProjectDir
-
-def display(in_img, out_img, clear_img):
-    _, axes = plt.subplots(1, 3)
-    axs = axes.flatten()
-    axs[0].imshow(in_img)
-    axs[1].imshow(out_img)
-    axs[2].imshow(clear_img)
-    plt.show()
-
+from train import AODnet, Preprocess, GetProjectDir
 
 if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.has_mps else 'cpu')
@@ -26,6 +14,7 @@ if __name__ == '__main__':
     testingDataset = DehazingDataset(dehazingDatasetPath=datasetPath, _type=DatasetType.Test, transformFn=Preprocess,
                                       verbose=False)
     testingDataLoader = tu_data.DataLoader(testingDataset, batch_size=32, shuffle=True, num_workers=3)
+    print(len(testingDataset))
 
     # input_image_path = "/Users/flameberry/Developer/Dehazing/dataset/SS594_Multispectral_Dehazing/Haze1k/Haze1k/Haze1k_thick/dataset/test/input/357-inputs.png"
     # clear_image_path = "/Users/flameberry/Developer/Dehazing/dataset/SS594_Multispectral_Dehazing/Haze1k/Haze1k/Haze1k_thick/dataset/test/target/357-targets.png"
