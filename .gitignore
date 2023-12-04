@@ -243,3 +243,4 @@ fabric.properties
 # Maybe unnecessary
 .idea
 saved_models/
+src/AODnet/output
