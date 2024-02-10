@@ -1,18 +1,11 @@
-"""
-paper: GridDehazeNet: Attention-Based Multi-Scale Network for Image Dehazing
-file: utils.py
-about: all utilities
-author: Xiaohong Liu
-date: 01/08/19
-"""
-
 # --- Imports --- #
 import time
 import torch
 import torch.nn.functional as F
 import torchvision.utils as utils
 from math import log10
-from skimage import measure
+# from skimage import measure
+from skimage.metrics import structural_similarity
 
 
 def to_psnr(dehaze, gt):
@@ -31,7 +24,7 @@ def to_ssim_skimage(dehaze, gt):
 
     dehaze_list_np = [dehaze_list[ind].permute(0, 2, 3, 1).data.cpu().numpy().squeeze() for ind in range(len(dehaze_list))]
     gt_list_np = [gt_list[ind].permute(0, 2, 3, 1).data.cpu().numpy().squeeze() for ind in range(len(dehaze_list))]
-    ssim_list = [measure.compare_ssim(dehaze_list_np[ind],  gt_list_np[ind], data_range=1, multichannel=True) for ind in range(len(dehaze_list))]
+    ssim_list = [structural_similarity(dehaze_list_np[ind], gt_list_np[ind], data_range=1, multichannel=True) for ind in range(len(dehaze_list))]
 
     return ssim_list
 
@@ -51,7 +44,7 @@ def validation(net, val_data_loader, device, category, save_tag=False):
     for batch_id, val_data in enumerate(val_data_loader):
 
         with torch.no_grad():
-            haze, gt, image_name = val_data
+            haze, gt = val_data
             haze = haze.to(device)
             gt = gt.to(device)
             dehaze = net(haze)
@@ -64,7 +57,7 @@ def validation(net, val_data_loader, device, category, save_tag=False):
 
         # --- Save image --- #
         if save_tag:
-            save_image(dehaze, image_name, category)
+            save_image(dehaze, f"{batch_id}_SSIM_{ssim_list[-1]}", category)
 
     avr_psnr = sum(psnr_list) / len(psnr_list)
     avr_ssim = sum(ssim_list) / len(ssim_list)

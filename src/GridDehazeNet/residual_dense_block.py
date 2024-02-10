@@ -1,11 +1,3 @@
-"""
-paper: GridDehazeNet: Attention-Based Multi-Scale Network for Image Dehazing
-file: residual_dense_block.py
-about: build the Residual Dense Block
-author: Xiaohong Liu
-date: 01/08/19
-"""
-
 # --- Imports --- #
 import torch
 import torch.nn as nn

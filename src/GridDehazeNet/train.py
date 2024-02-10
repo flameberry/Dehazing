@@ -105,12 +105,12 @@ print("Total_params: {}".format(pytorch_total_params))
 # train_data_loader = DataLoader(TrainData(crop_size, train_data_dir), batch_size=train_batch_size, shuffle=True, num_workers=24)
 # val_data_loader = DataLoader(ValData(val_data_dir), batch_size=val_batch_size, shuffle=False, num_workers=24)
 
-datasetPath = pathlib.Path('SS594_Multispectral_Dehazing/Haze1k/Haze1k')
-trainingDataset = DehazingDataset(dehazingDatasetPath=datasetPath, _type=DatasetType.Train, transformFn=Preprocess, verbose=True)
-validationDataset = DehazingDataset(dehazingDatasetPath=datasetPath, _type=DatasetType.Validation, transformFn=Preprocess, verbose=True)
+datasetPath = pathlib.Path('dataset/SS594_Multispectral_Dehazing/Haze1k/Haze1k')
+trainingDataset = DehazingDataset(dehazingDatasetPath=datasetPath, _type=DatasetType.Train, transformFn=Preprocess, verbose=False)
+validationDataset = DehazingDataset(dehazingDatasetPath=datasetPath, _type=DatasetType.Validation, transformFn=Preprocess, verbose=False)
 
-train_data_loader = tu_data.DataLoader(trainingDataset, batch_size=32, shuffle=True, num_workers=3)
-val_data_loader = tu_data.DataLoader(validationDataset, batch_size=32, shuffle=True, num_workers=3)
+train_data_loader = tu_data.DataLoader(trainingDataset, batch_size=32, shuffle=True, num_workers=0)
+val_data_loader = tu_data.DataLoader(validationDataset, batch_size=32, shuffle=True, num_workers=0)
 
 
 # --- Previous PSNR and SSIM in testing --- #
